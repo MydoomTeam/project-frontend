@@ -11,22 +11,23 @@ Frontend React + TypeScript para la app ArenaSync.
 - HTTP: Axios
 - Estado local: `localStorage` para token y perfil de usuario
 
-## Estructura principal
+## Estructura del frontend
 
-- `src/main.tsx`: punto de entrada de Vite
-- `src/App.tsx`: rutas públicas y privadas
-- `src/components/Navbar.tsx`: barra de navegación y logout
-- `src/pages/Login.tsx`: pantalla de login
-- `src/pages/Register.tsx`: pantalla de registro
-- `src/pages/Dashboard.tsx`: listado y creación de torneos
-- `src/pages/TournamentDetail.tsx`: detalle de torneo, inscripción, bracket, inicio y resultados
-- `src/pages/Alerts.tsx`: panel de alertas de matches vencidos
-- `src/services/apiClient.ts`: cliente Axios con base URL proxy y token header
-- `src/services/auth.ts`: login y registro
-- `src/services/tournaments.ts`: endpoints de torneos y registro
-- `src/services/alerts.ts`: alertas y reconocimiento
-- `src/services/errorHandler.ts`: extrae mensajes legibles del backend
-- `src/types/models.ts`: tipos de datos compartidos
+```
+project-frontend/
+├── package.json
+├── tsconfig.json
+├── vite.config.ts
+├── README.md
+└── src/
+    ├── main.tsx                    # entrada de Vite
+    ├── App.tsx                     # enrutamiento y rutas privadas
+    ├── assets/                     # estilos y recursos estáticos
+    ├── components/                 # componentes reutilizables (Navbar)
+    ├── pages/                      # pantallas de la app
+    ├── services/                   # cliente HTTP y llamadas a API
+    └── types/                      # tipos TypeScript compartidos
+```
 
 ## Configuración de backend
 
@@ -97,14 +98,23 @@ Validaciones de contraseña en cliente:
 - Las alertas nuevas se muestran con fondo destacado y pueden marcarse como leídas.
 - Si `401` viene del backend, se limpia sesión y se redirige a `/login`.
 
-## Build y ejecución
+## Instalación
+
+Requisitos:
+
+- Node.js 18+ (o compatible con Vite 8)
+- npm o yarn
+
+Instala dependencias y arranca el frontend:
 
 ```bash
 npm install
 npm run dev
 ```
 
-Para producción:
+## Build y ejecución
+
+Compila la aplicación para producción:
 
 ```bash
 npm run build
