@@ -3,13 +3,25 @@ import { getAlerts, ackAlert } from '../services/alerts';
 import { AlertItem } from '../types/models';
 import { getBackendErrorMessage } from '../services/errorHandler';
 
+const ALERTS_REFRESH_MS = 15000;
+
 export const Alerts: React.FC = () => {
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
+
+  const toAlertStatusLabel = (status: AlertItem['status']): string => {
+    return status === 'nueva' ? 'No leida' : 'Leida';
+  };
 
   const loadAlerts = async () => {
     try {
       const data = await getAlerts();
-      setAlerts(data.items || []);
+      const sorted = [...(data.items || [])].sort((left, right) => {
+        if (left.status !== right.status) {
+          return left.status === 'nueva' ? -1 : 1;
+        }
+        return right.id - left.id;
+      });
+      setAlerts(sorted);
     } catch (err) {
       console.error(err);
     }
@@ -17,6 +29,8 @@ export const Alerts: React.FC = () => {
 
   useEffect(() => {
     loadAlerts();
+    const intervalId = window.setInterval(loadAlerts, ALERTS_REFRESH_MS);
+    return () => window.clearInterval(intervalId);
   }, []);
 
   const handleAck = async (id: number) => {
@@ -50,7 +64,7 @@ export const Alerts: React.FC = () => {
               <div>
                 <p style={{ margin: 0, fontWeight: a.status === 'nueva' ? 'bold' : 'normal' }}>{a.message}</p>
                 <small style={{ color: 'var(--text-muted)' }}>
-                  Fecha: {a.created_at} | Estado: {a.status}
+                  Fecha: {a.created_at} | Estado: {toAlertStatusLabel(a.status)}
                 </small>
               </div>
               {a.status === 'nueva' && (
