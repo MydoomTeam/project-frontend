@@ -77,6 +77,11 @@ export const startTournament = async (id: number): Promise<void> => {
   await apiClient.post(`/tournaments/${id}/start`);
 };
 
+export const updateTournament = async (id: number, payload: Partial<CreateTournamentPayload>): Promise<Tournament> => {
+  const response = await apiClient.patch<Tournament>(`/tournaments/${id}`, payload);
+  return response.data;
+};
+
 export const getBracket = async (id: number): Promise<BracketResponse> => {
   const response = await apiClient.get<BracketResponse>(`/tournaments/${id}/bracket`);
   return response.data;

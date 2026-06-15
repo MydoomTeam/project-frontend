@@ -14,6 +14,7 @@ import {
   getPlayerHistory,
   getTournamentRegistrations,
   updateRegistrationStatus,
+  updateTournament,
 } from '../services/tournaments';
 import { getPlayerById } from '../services/players';
 import { Tournament, Match, RankingItem, TournamentRegistration } from '../types/models';
@@ -246,6 +247,11 @@ export const TournamentDetail: React.FC = () => {
     }
   };
 
+  const [showDeadlinesModal, setShowDeadlinesModal] = useState(false);
+  const [deadlineStart, setDeadlineStart] = useState<string | null>(null);
+  const [deadlineEnd, setDeadlineEnd] = useState<string | null>(null);
+  const [isSavingDeadlines, setIsSavingDeadlines] = useState(false);
+
   const handleGenerateBracket = async () => {
     try {
       await generateBracket(tournamentId);
@@ -261,6 +267,42 @@ export const TournamentDetail: React.FC = () => {
       loadAllData();
     } catch (err: any) {
       alert(getBackendErrorMessage(err, 'Error al iniciar torneo'));
+    }
+  };
+
+  const openDeadlinesModal = () => {
+    setDeadlineStart(tournament.start_date ?? null);
+    setDeadlineEnd(tournament.end_date ?? null);
+    setShowDeadlinesModal(true);
+  };
+
+  const saveDeadlines = async () => {
+    setError('');
+    if (deadlineStart && deadlineEnd) {
+      const s = new Date(deadlineStart);
+      const e = new Date(deadlineEnd);
+      if (Number.isNaN(s.getTime()) || Number.isNaN(e.getTime())) {
+        alert('Fechas inválidas');
+        return;
+      }
+      if (e < s) {
+        alert('La fecha de fin no puede ser anterior a la fecha de inicio');
+        return;
+      }
+    }
+
+    setIsSavingDeadlines(true);
+    try {
+      const payload: any = {};
+      if (deadlineStart !== null) payload.start_date = deadlineStart;
+      if (deadlineEnd !== null) payload.end_date = deadlineEnd;
+      await updateTournament(tournamentId, payload);
+      setShowDeadlinesModal(false);
+      loadAllData();
+    } catch (err: any) {
+      alert(getBackendErrorMessage(err, 'Error al guardar deadlines'));
+    } finally {
+      setIsSavingDeadlines(false);
     }
   };
 
@@ -397,9 +439,14 @@ export const TournamentDetail: React.FC = () => {
           {isCreator && (
             <>
               {tournament.status === 'Pendiente' && (
-                <button onClick={handleGenerateBracket} className="btn td-btn-primary">
-                  Generar cuadro
-                </button>
+                <>
+                  <button onClick={handleGenerateBracket} className="btn td-btn-primary">
+                    Generar cuadro
+                  </button>
+                  <button onClick={openDeadlinesModal} className="btn btn-secondary td-btn-sm">
+                    Configurar deadlines
+                  </button>
+                </>
               )}
               {tournament.status === 'Listo para iniciar' && (
                 <button onClick={handleStart} className="btn td-btn-success">
@@ -732,6 +779,49 @@ export const TournamentDetail: React.FC = () => {
                   Confirmar ganador
                 </button>
                 <button onClick={() => setPendingResult(null)} className="btn btn-secondary">
+                  Cancelar
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {showDeadlinesModal && (
+          <motion.div
+            className="dashboard-create-modal-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            role="dialog"
+            aria-modal="true"
+          >
+            <motion.div
+              className="dashboard-create-modal"
+              initial={{ scale: 0.93, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.93, opacity: 0 }}
+              transition={{ duration: 0.15 }}
+            >
+              <div className="dashboard-create-modal-head">
+                <h2>Configurar deadlines</h2>
+                <button onClick={() => setShowDeadlinesModal(false)} className="dashboard-create-close">✕</button>
+              </div>
+
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.25rem' }}>Fecha de inicio</label>
+                <input type="date" value={deadlineStart ?? ''} onChange={(e) => setDeadlineStart(e.target.value || null)} />
+              </div>
+
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.25rem' }}>Fecha de fin</label>
+                <input type="date" value={deadlineEnd ?? ''} onChange={(e) => setDeadlineEnd(e.target.value || null)} />
+              </div>
+
+              <div className="dashboard-inline-actions">
+                <button onClick={saveDeadlines} className="btn td-btn-success" disabled={isSavingDeadlines}>
+                  {isSavingDeadlines ? 'Guardando…' : 'Guardar'}
+                </button>
+                <button onClick={() => setShowDeadlinesModal(false)} className="btn btn-secondary">
                   Cancelar
                 </button>
               </div>

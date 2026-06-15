@@ -33,6 +33,7 @@ const optionalPositiveInteger = z.preprocess(
   z.number({ error: 'Debe ser un número' }).int('Debe ser un número entero').positive('Debe ser mayor a 0').optional(),
 );
 
+
 const optionalTrimmedText = z.preprocess(
   (value) => {
     if (typeof value !== 'string') return undefined;
