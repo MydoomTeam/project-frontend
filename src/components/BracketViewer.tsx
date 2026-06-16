@@ -1,5 +1,6 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
+import { Link, useNavigate } from 'react-router-dom';
 import { Bracket, Model } from 'react-tournament-bracket';
 import { EliminationType, Match } from '../types/models';
 import { PlayerAvatar } from './PlayerAvatar';
@@ -19,8 +20,10 @@ interface BracketViewerProps {
   matches: Match[];
   eliminationType: EliminationType;
   playerNames?: Record<number, string>;
+  playerAvatars?: Record<number, string | null>;
   isCreator: boolean;
   participantCount: number;
+  usesScore?: boolean;
   onSelectWinner: (matchId: number, winnerId: number) => void;
 }
 
@@ -56,11 +59,24 @@ const toNumericScore = (value: string): number | null => {
   return Number(value);
 };
 
-const BracketGameCard: React.FC<{ game: Model.Game; x?: number; y?: number; homeOnTop?: boolean }> = ({
+const BracketGameCard: React.FC<{
+  game: Model.Game;
+  x?: number;
+  y?: number;
+  homeOnTop?: boolean;
+  playerAvatars?: Record<number, string | null>;
+  onOpenPlayerProfile?: (playerId: number) => void;
+  selectableMatchIds?: Set<string>;
+  onOpenMatchResult?: (matchId: number) => void;
+}> = ({
   game,
   x = 0,
   y = 0,
   homeOnTop = true,
+  playerAvatars,
+  onOpenPlayerProfile,
+  selectableMatchIds,
+  onOpenMatchResult,
 }) => {
   const { id, name, bracketLabel, scheduled, sides } = game;
   const top = homeOnTop ? sides.home : sides.visitor;
@@ -70,8 +86,85 @@ const BracketGameCard: React.FC<{ game: Model.Game; x?: number; y?: number; home
   const topWon = typeof topScore === 'number' && typeof bottomScore === 'number' && topScore > bottomScore;
   const bottomWon = typeof topScore === 'number' && typeof bottomScore === 'number' && bottomScore > topScore;
 
+  const topName = top?.team?.name || top?.seed?.displayName || 'BYE';
+  const bottomName = bottom?.team?.name || bottom?.seed?.displayName || 'BYE';
+
+  const getTeamAvatar = (team?: { id: string; name: string }): string | undefined => {
+    if (!team?.id) return undefined;
+    const numericId = Number(team.id);
+    if (!Number.isFinite(numericId)) return undefined;
+    return playerAvatars?.[numericId] ?? undefined;
+  };
+
+  const topAvatarUrl = getTeamAvatar(top?.team);
+  const bottomAvatarUrl = getTeamAvatar(bottom?.team);
+
+  const parseTeamId = (team?: { id: string; name: string }): number | null => {
+    if (!team?.id) return null;
+    const parsed = Number(team.id);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+
+  const topPlayerId = parseTeamId(top?.team);
+  const bottomPlayerId = parseTeamId(bottom?.team);
+
+  const avatarInitials = (label: string): string => {
+    const parts = label.trim().split(/\s+/).filter(Boolean);
+    if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    return label.slice(0, 2).toUpperCase();
+  };
+
+  const isSelectableMatch = selectableMatchIds?.has(String(id)) ?? false;
+  const handleOpenMatchResult = () => {
+    if (!isSelectableMatch || !onOpenMatchResult) return;
+    const matchId = Number(id);
+    if (!Number.isNaN(matchId)) {
+      onOpenMatchResult(matchId);
+    }
+  };
+
+  const renderSvgAvatar = (slot: 'top' | 'bottom', centerY: number, avatarUrl?: string, playerId?: number | null) => {
+    const radius = 9;
+    const centerX = 18;
+    const clipId = `br-av-${String(id)}-${slot}`;
+    const openProfile = () => {
+      if (playerId && onOpenPlayerProfile) onOpenPlayerProfile(playerId);
+    };
+    return (
+      <g onClick={openProfile} style={playerId ? { cursor: 'pointer' } : undefined}>
+        <circle cx={centerX} cy={centerY} r={radius} fill="rgba(7, 29, 55, 0.95)" stroke="rgba(31, 216, 229, 0.62)" />
+        {avatarUrl ? (
+          <>
+            <defs>
+              <clipPath id={clipId}>
+                <circle cx={centerX} cy={centerY} r={radius - 0.6} />
+              </clipPath>
+            </defs>
+            <image
+              href={avatarUrl}
+              x={centerX - radius}
+              y={centerY - radius}
+              width={radius * 2}
+              height={radius * 2}
+              preserveAspectRatio="xMidYMid slice"
+              clipPath={`url(#${clipId})`}
+            />
+          </>
+        ) : (
+          <text x={centerX} y={centerY + 3.4} textAnchor="middle" className="bracket-game-avatar-fallback">
+            {avatarInitials(slot === 'top' ? topName : bottomName)}
+          </text>
+        )}
+      </g>
+    );
+  };
+
   return (
-    <g transform={`translate(${x}, ${y})`}>
+    <g
+      transform={`translate(${x}, ${y})`}
+      onClick={handleOpenMatchResult}
+      style={isSelectableMatch ? { cursor: 'pointer' } : undefined}
+    >
       <rect x="0" y="0" width={BRACKET_GAME_WIDTH} height={BRACKET_GAME_HEIGHT} rx="10" className="bracket-game-shell" />
       <rect x="0" y="0" width={BRACKET_GAME_WIDTH} height={BRACKET_HEAD_HEIGHT} rx="10" className="bracket-game-head" />
       <text x="12" y="17" className="bracket-game-head-text">{name}</text>
@@ -80,8 +173,31 @@ const BracketGameCard: React.FC<{ game: Model.Game; x?: number; y?: number; home
       <rect x="0" y={BRACKET_HEAD_HEIGHT} width={BRACKET_GAME_WIDTH} height={BRACKET_ROW_HEIGHT} className={topWon ? 'bracket-game-row win' : 'bracket-game-row'} />
       <rect x="0" y={BRACKET_HEAD_HEIGHT + BRACKET_ROW_HEIGHT} width={BRACKET_GAME_WIDTH} height={BRACKET_ROW_HEIGHT} className={bottomWon ? 'bracket-game-row win' : 'bracket-game-row'} />
 
-      <text x="12" y={BRACKET_HEAD_HEIGHT + 23} className="bracket-game-player-name">{top?.team?.name || top?.seed?.displayName || 'BYE'}</text>
-      <text x="12" y={BRACKET_HEAD_HEIGHT + BRACKET_ROW_HEIGHT + 23} className="bracket-game-player-name">{bottom?.team?.name || bottom?.seed?.displayName || 'BYE'}</text>
+      {renderSvgAvatar('top', BRACKET_HEAD_HEIGHT + 18, topAvatarUrl, topPlayerId)}
+      {renderSvgAvatar('bottom', BRACKET_HEAD_HEIGHT + BRACKET_ROW_HEIGHT + 18, bottomAvatarUrl, bottomPlayerId)}
+
+      <text
+        x="32"
+        y={BRACKET_HEAD_HEIGHT + 23}
+        className="bracket-game-player-name"
+        style={topPlayerId ? { cursor: 'pointer' } : undefined}
+        onClick={() => {
+          if (topPlayerId && onOpenPlayerProfile) onOpenPlayerProfile(topPlayerId);
+        }}
+      >
+        {topName}
+      </text>
+      <text
+        x="32"
+        y={BRACKET_HEAD_HEIGHT + BRACKET_ROW_HEIGHT + 23}
+        className="bracket-game-player-name"
+        style={bottomPlayerId ? { cursor: 'pointer' } : undefined}
+        onClick={() => {
+          if (bottomPlayerId && onOpenPlayerProfile) onOpenPlayerProfile(bottomPlayerId);
+        }}
+      >
+        {bottomName}
+      </text>
 
       <rect x={BRACKET_GAME_WIDTH - BRACKET_SCORE_COL_WIDTH} y={BRACKET_HEAD_HEIGHT} width={BRACKET_SCORE_COL_WIDTH} height={BRACKET_ROW_HEIGHT * 2} className="bracket-game-score-col" />
       <text x={BRACKET_GAME_WIDTH - BRACKET_SCORE_COL_WIDTH / 2} y={BRACKET_HEAD_HEIGHT + 23} textAnchor="middle" className={topWon ? 'bracket-game-score win' : 'bracket-game-score'}>
@@ -102,10 +218,13 @@ export const BracketViewer: React.FC<BracketViewerProps> = ({
   matches,
   eliminationType,
   playerNames,
+  playerAvatars,
   isCreator,
   participantCount,
+  usesScore = false,
   onSelectWinner,
 }) => {
+  const navigate = useNavigate();
   const [zoom, setZoom] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const dragOrigin = useRef<{ x: number; y: number } | null>(null);
@@ -113,6 +232,21 @@ export const BracketViewer: React.FC<BracketViewerProps> = ({
   const toPlayerLabel = (playerId: number | null | undefined): string => {
     if (playerId == null) return 'BYE';
     return playerNames?.[playerId] || `Jugador #${playerId}`;
+  };
+
+  const toPlayerAvatar = (playerId: number | null | undefined): string | null => {
+    if (playerId == null) return null;
+    return playerAvatars?.[playerId] ?? null;
+  };
+
+  const renderPlayerLabel = (playerId: number | null | undefined) => {
+    const label = toPlayerLabel(playerId);
+    if (playerId == null) return <span>{label}</span>;
+    return (
+      <Link to={`/profile/${playerId}`} className="player-profile-link">
+        {label}
+      </Link>
+    );
   };
 
   const isLargeBracket = participantCount > ZOOM_THRESHOLD_PARTICIPANTS;
@@ -178,11 +312,20 @@ export const BracketViewer: React.FC<BracketViewerProps> = ({
     if (playerSlot === 'player2' && detail2 != null) return detail2;
 
     const playerId = playerSlot === 'player1' ? match.player1_id : match.player2_id;
-    if (match.status === 'Finalizado' && match.winner_id != null && playerId != null) {
+    if (!usesScore && match.status === 'Finalizado' && match.winner_id != null && playerId != null) {
       return playerId === match.winner_id ? 'WIN' : 'LOSE';
     }
     return '—';
   };
+
+  const selectableMatchIds = useMemo(
+    () => new Set(
+      (matches as MatchWithScores[])
+        .filter((match) => isCreator && match.status === 'En curso' && match.player1_id && match.player2_id)
+        .map((match) => String(match.id)),
+    ),
+    [matches, isCreator],
+  );
 
   const bracketGames = useMemo<Model.Game[]>(() => {
     if (!isEliminationFormat) return [];
@@ -200,14 +343,24 @@ export const BracketViewer: React.FC<BracketViewerProps> = ({
         scheduled: match.scheduled_datetime ? Date.parse(match.scheduled_datetime) : Date.now(),
         sides: {
           home: {
-            team: match.player1_id != null ? { id: String(match.player1_id), name: toPlayerLabel(match.player1_id) } : undefined,
+            team: match.player1_id != null
+              ? {
+                  id: String(match.player1_id),
+                  name: toPlayerLabel(match.player1_id),
+                }
+              : undefined,
             score: (() => {
               const value = toNumericScore(toScoreText(match, 'player1'));
               return value != null ? { score: value } : undefined;
             })(),
           },
           visitor: {
-            team: match.player2_id != null ? { id: String(match.player2_id), name: toPlayerLabel(match.player2_id) } : undefined,
+            team: match.player2_id != null
+              ? {
+                  id: String(match.player2_id),
+                  name: toPlayerLabel(match.player2_id),
+                }
+              : undefined,
             score: (() => {
               const value = toNumericScore(toScoreText(match, 'player2'));
               return value != null ? { score: value } : undefined;
@@ -422,6 +575,12 @@ export const BracketViewer: React.FC<BracketViewerProps> = ({
     dragOrigin.current = null;
   };
 
+  const handleOpenMatchWinnerSelection = (match: MatchWithScores) => {
+    if (!isCreator || match.status !== 'En curso' || !match.player1_id || !match.player2_id) return;
+    const suggestedWinner = match.winner_id ?? match.player1_id;
+    onSelectWinner(match.id, suggestedWinner);
+  };
+
   const actionableMatches = (matches as MatchWithScores[]).filter(
     (match) => isCreator && match.status === 'En curso' && match.player1_id && match.player2_id,
   );
@@ -469,6 +628,8 @@ export const BracketViewer: React.FC<BracketViewerProps> = ({
               <motion.article
                 key={match.id}
                 className="match-box bracket-match-card"
+                onClick={() => handleOpenMatchWinnerSelection(match)}
+                style={isCreator && match.status === 'En curso' ? { cursor: 'pointer' } : undefined}
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.2 }}
@@ -479,15 +640,15 @@ export const BracketViewer: React.FC<BracketViewerProps> = ({
                 </header>
                 <div className="bracket-player-row">
                   <span className="player-name-cell">
-                    <PlayerAvatar username={toPlayerLabel(match.player1_id)} size="xs" />
-                    <span>{toPlayerLabel(match.player1_id)}</span>
+                    <PlayerAvatar username={toPlayerLabel(match.player1_id)} avatarUrl={toPlayerAvatar(match.player1_id)} size="xs" />
+                    {renderPlayerLabel(match.player1_id)}
                   </span>
                   <span className="bracket-player-score">{toScoreText(match, 'player1')}</span>
                 </div>
                 <div className="bracket-player-row">
                   <span className="player-name-cell">
-                    <PlayerAvatar username={toPlayerLabel(match.player2_id)} size="xs" />
-                    <span>{toPlayerLabel(match.player2_id)}</span>
+                    <PlayerAvatar username={toPlayerLabel(match.player2_id)} avatarUrl={toPlayerAvatar(match.player2_id)} size="xs" />
+                    {renderPlayerLabel(match.player2_id)}
                   </span>
                   <span className="bracket-player-score">{toScoreText(match, 'player2')}</span>
                 </div>
@@ -520,7 +681,9 @@ export const BracketViewer: React.FC<BracketViewerProps> = ({
             {roundRobinStandings.map((row, index) => (
               <tr key={row.playerId}>
                 <td>{index + 1}</td>
-                <td>{row.playerName}</td>
+                <td>
+                  <Link to={`/profile/${row.playerId}`} className="player-profile-link">{row.playerName}</Link>
+                </td>
                 <td>{row.played}</td>
                 <td>{row.wins}</td>
                 <td>{row.draws}</td>
@@ -540,6 +703,8 @@ export const BracketViewer: React.FC<BracketViewerProps> = ({
               <motion.article
                 key={match.id}
                 className="match-box bracket-match-card"
+                onClick={() => handleOpenMatchWinnerSelection(match)}
+                style={isCreator && match.status === 'En curso' ? { cursor: 'pointer' } : undefined}
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.2 }}
@@ -550,15 +715,15 @@ export const BracketViewer: React.FC<BracketViewerProps> = ({
                 </header>
                 <div className="bracket-player-row">
                   <span className="player-name-cell">
-                    <PlayerAvatar username={toPlayerLabel(match.player1_id)} size="xs" />
-                    <span>{toPlayerLabel(match.player1_id)}</span>
+                    <PlayerAvatar username={toPlayerLabel(match.player1_id)} avatarUrl={toPlayerAvatar(match.player1_id)} size="xs" />
+                    {renderPlayerLabel(match.player1_id)}
                   </span>
                   <span className="bracket-player-score">{toScoreText(match, 'player1')}</span>
                 </div>
                 <div className="bracket-player-row">
                   <span className="player-name-cell">
-                    <PlayerAvatar username={toPlayerLabel(match.player2_id)} size="xs" />
-                    <span>{toPlayerLabel(match.player2_id)}</span>
+                    <PlayerAvatar username={toPlayerLabel(match.player2_id)} avatarUrl={toPlayerAvatar(match.player2_id)} size="xs" />
+                    {renderPlayerLabel(match.player2_id)}
                   </span>
                   <span className="bracket-player-score">{toScoreText(match, 'player2')}</span>
                 </div>
@@ -579,6 +744,8 @@ export const BracketViewer: React.FC<BracketViewerProps> = ({
             <motion.article
               key={match.id}
               className="match-box bracket-match-card"
+              onClick={() => handleOpenMatchWinnerSelection(match)}
+              style={isCreator && match.status === 'En curso' ? { cursor: 'pointer' } : undefined}
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.2 }}
@@ -589,15 +756,15 @@ export const BracketViewer: React.FC<BracketViewerProps> = ({
               </header>
               <div className="bracket-player-row">
                 <span className="player-name-cell">
-                  <PlayerAvatar username={toPlayerLabel(match.player1_id)} size="xs" />
-                  <span>{toPlayerLabel(match.player1_id)}</span>
+                  <PlayerAvatar username={toPlayerLabel(match.player1_id)} avatarUrl={toPlayerAvatar(match.player1_id)} size="xs" />
+                  {renderPlayerLabel(match.player1_id)}
                 </span>
                 <span className="bracket-player-score">{toScoreText(match, 'player1')}</span>
               </div>
               <div className="bracket-player-row">
                 <span className="player-name-cell">
-                  <PlayerAvatar username={toPlayerLabel(match.player2_id)} size="xs" />
-                  <span>{toPlayerLabel(match.player2_id)}</span>
+                  <PlayerAvatar username={toPlayerLabel(match.player2_id)} avatarUrl={toPlayerAvatar(match.player2_id)} size="xs" />
+                  {renderPlayerLabel(match.player2_id)}
                 </span>
                 <span className="bracket-player-score">{toScoreText(match, 'player2')}</span>
               </div>
@@ -638,7 +805,11 @@ export const BracketViewer: React.FC<BracketViewerProps> = ({
               <span className="bracket-column-title">Ganador</span>
             </div>
             <div className="single-final-wrap">
-              <article className="single-final-card bracket-match-card">
+              <article
+                className="single-final-card bracket-match-card"
+                onClick={() => handleOpenMatchWinnerSelection(singleEliminationMatch)}
+                style={isCreator && singleEliminationMatch.status === 'En curso' ? { cursor: 'pointer' } : undefined}
+              >
                 <header className="bracket-match-meta">
                   <span>Partido #{singleEliminationMatch.id}</span>
                   <span>{singleEliminationMatch.status}</span>
@@ -648,15 +819,15 @@ export const BracketViewer: React.FC<BracketViewerProps> = ({
                 )}
                 <div className="bracket-player-row">
                 <span className="player-name-cell">
-                  <PlayerAvatar username={toPlayerLabel(singleEliminationMatch.player1_id)} size="xs" />
-                  <span>{toPlayerLabel(singleEliminationMatch.player1_id)}</span>
+                  <PlayerAvatar username={toPlayerLabel(singleEliminationMatch.player1_id)} avatarUrl={toPlayerAvatar(singleEliminationMatch.player1_id)} size="xs" />
+                  {renderPlayerLabel(singleEliminationMatch.player1_id)}
                 </span>
                 <span className="bracket-player-score">{toScoreText(singleEliminationMatch, 'player1')}</span>
               </div>
               <div className="bracket-player-row">
                 <span className="player-name-cell">
-                  <PlayerAvatar username={toPlayerLabel(singleEliminationMatch.player2_id)} size="xs" />
-                  <span>{toPlayerLabel(singleEliminationMatch.player2_id)}</span>
+                  <PlayerAvatar username={toPlayerLabel(singleEliminationMatch.player2_id)} avatarUrl={toPlayerAvatar(singleEliminationMatch.player2_id)} size="xs" />
+                  {renderPlayerLabel(singleEliminationMatch.player2_id)}
                 </span>
                   <span className="bracket-player-score">{toScoreText(singleEliminationMatch, 'player2')}</span>
                 </div>
@@ -700,7 +871,20 @@ export const BracketViewer: React.FC<BracketViewerProps> = ({
                 <div key={game.id} className="bracket-library-final-item">
                   <Bracket
                     game={game}
-                    GameComponent={BracketGameCard}
+                    GameComponent={(props) => (
+                      <BracketGameCard
+                        {...props}
+                        playerAvatars={playerAvatars}
+                        onOpenPlayerProfile={(playerId) => navigate(`/profile/${playerId}`)}
+                        selectableMatchIds={selectableMatchIds}
+                        onOpenMatchResult={(matchId) => {
+                          const match = (matches as MatchWithScores[]).find((item) => item.id === matchId);
+                          if (match) {
+                            handleOpenMatchWinnerSelection(match);
+                          }
+                        }}
+                      />
+                    )}
                     gameDimensions={{ width: BRACKET_GAME_WIDTH, height: BRACKET_GAME_HEIGHT }}
                     roundSeparatorWidth={62}
                     lineInfo={{ yOffset: 0, separation: 10, homeVisitorSpread: 16 }}
@@ -767,28 +951,10 @@ export const BracketViewer: React.FC<BracketViewerProps> = ({
           {board}
         </div>
       )}
-      {actionableMatches.length > 0 && (
-        <div className="bracket-action-list">
-          {actionableMatches.map((match) => (
-            <div className="bracket-action-item" key={match.id}>
-              <span>Partido #{match.id}</span>
-              <div>
-                <button
-                  onClick={() => onSelectWinner(match.id, match.player1_id!)}
-                  className="btn btn-secondary bracket-report-btn"
-                >
-                  {toPlayerLabel(match.player1_id)}
-                </button>
-                <button
-                  onClick={() => onSelectWinner(match.id, match.player2_id!)}
-                  className="btn btn-secondary bracket-report-btn"
-                >
-                  {toPlayerLabel(match.player2_id)}
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
+      {actionableMatches.length > 0 && isCreator && (
+        <p className="match-next-line" style={{ marginTop: '0.6rem' }}>
+          Haz clic sobre un partido en curso para registrar resultado.
+        </p>
       )}
     </div>
   );

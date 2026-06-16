@@ -5,6 +5,7 @@ export interface Player {
   role: string;
   last_access_date: string;
   global_elo: number;
+  avatar_url?: string | null;
 }
 
 export interface SessionResponse {
@@ -36,6 +37,7 @@ export interface Tournament {
   participant_target?: number | null;
   rounds: number;
   round_duration_minutes?: number | null;
+  uses_score?: boolean;
   status: TournamentStatus;
   start_date?: string | null;
   end_date?: string | null;
@@ -43,6 +45,7 @@ export interface Tournament {
   region?: string | null;
   creator_id: number;
   creator_name?: string;
+  creator_avatar_url?: string | null;
   total_participants?: number;
 }
 
@@ -85,6 +88,26 @@ export interface AlertItem {
   status: "nueva" | "reconocida";
 }
 
+export interface AlertActivityItem {
+  id: number;
+  action: string;
+  created_at: string;
+  description?: string | null;
+}
+
+export interface AlertPanelStats {
+  total: number;
+  new: number;
+  acknowledged: number;
+  critical: number;
+}
+
+export interface AlertPanelResponse {
+  items: AlertItem[];
+  stats: AlertPanelStats;
+  history: AlertActivityItem[];
+}
+
 export interface PlayerTournamentHistoryItem {
   id: number;
   name: string;
@@ -93,6 +116,13 @@ export interface PlayerTournamentHistoryItem {
   status: TournamentStatus;
   is_creator: boolean;
   registration_status: string | null;
+}
+
+export interface PlayerLookupItem {
+  id: number;
+  username: string;
+  global_elo: number;
+  avatar_url?: string | null;
 }
 
 export interface EloHistoryItem {

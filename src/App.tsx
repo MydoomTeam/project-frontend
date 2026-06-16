@@ -4,6 +4,7 @@ import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { Dashboard } from './pages/Dashboard';
 import { Tournaments } from './pages/Tournaments';
+import { TournamentsLive } from './pages/TournamentsLive';
 import { TournamentDetail } from './pages/TournamentDetail';
 import { CreateTournament } from './pages/CreateTournament';
 import { Alerts } from './pages/Alerts';
@@ -46,6 +47,10 @@ const AppLayout: React.FC = () => {
           element={<PrivateRoute><PrivateAppShell><Tournaments /></PrivateAppShell></PrivateRoute>}
         />
         <Route
+          path="/tournaments/live"
+          element={<PrivateRoute><PrivateAppShell><TournamentsLive /></PrivateAppShell></PrivateRoute>}
+        />
+        <Route
           path="/tournaments/:id"
           element={<PrivateRoute><PrivateAppShell><TournamentDetail /></PrivateAppShell></PrivateRoute>}
         />
@@ -59,6 +64,10 @@ const AppLayout: React.FC = () => {
         />
         <Route
           path="/profile"
+          element={<PrivateRoute><PrivateAppShell><Profile /></PrivateAppShell></PrivateRoute>}
+        />
+        <Route
+          path="/profile/:playerId"
           element={<PrivateRoute><PrivateAppShell><Profile /></PrivateAppShell></PrivateRoute>}
         />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />

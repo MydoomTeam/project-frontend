@@ -2,6 +2,7 @@ import React from 'react';
 
 interface PlayerAvatarProps {
   username?: string | null;
+  avatarUrl?: string | null;
   size?: 'xs' | 'sm' | 'md' | 'lg';
   className?: string;
 }
@@ -49,11 +50,17 @@ const getInitials = (username?: string | null): string => {
   return clean.slice(0, 2).toUpperCase();
 };
 
-export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({ username, size = 'md', className }) => {
+export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({ username, avatarUrl, size = 'md', className }) => {
+  const [imageFailed, setImageFailed] = React.useState(false);
+  React.useEffect(() => {
+    setImageFailed(false);
+  }, [avatarUrl]);
+
   const initials = getInitials(username);
   const idx = username?.trim() ? hashUsername(username.trim()) % AVATAR_PALETTE.length : 0;
   const color = AVATAR_PALETTE[idx];
   const px = SIZE_PX[size];
+  const hasImage = typeof avatarUrl === 'string' && avatarUrl.trim().length > 0 && !imageFailed;
 
   return (
     <span
@@ -69,7 +76,15 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({ username, size = 'md
         fontSize: FONT_SIZE[size],
       }}
     >
-      {initials}
+      {hasImage ? (
+        <img
+          src={avatarUrl as string}
+          alt=""
+          className="app-user-avatar-image"
+          referrerPolicy="no-referrer"
+          onError={() => setImageFailed(true)}
+        />
+      ) : initials}
     </span>
   );
 };

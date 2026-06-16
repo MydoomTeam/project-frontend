@@ -9,6 +9,7 @@ export interface CreateTournamentPayload {
   game_category?: string;
   participant_target?: number;
   round_duration_minutes?: number;
+  uses_score?: boolean;
   start_date?: string;
   end_date?: string;
   language?: string;
@@ -82,8 +83,18 @@ export const getBracket = async (id: number): Promise<BracketResponse> => {
   return response.data;
 };
 
-export const registerMatchResult = async (tournamentId: number, matchId: number, winnerId: number): Promise<void> => {
-  await apiClient.post(`/tournaments/${tournamentId}/matches/${matchId}/result`, { winner_id: winnerId });
+export const registerMatchResult = async (
+  tournamentId: number,
+  matchId: number,
+  winnerId: number,
+  scorePlayer1?: number,
+  scorePlayer2?: number,
+): Promise<void> => {
+  await apiClient.post(`/tournaments/${tournamentId}/matches/${matchId}/result`, {
+    winner_id: winnerId,
+    score_player1: scorePlayer1,
+    score_player2: scorePlayer2,
+  });
 };
 
 export const getRanking = async (id: number): Promise<{ ranking: RankingItem[] }> => {

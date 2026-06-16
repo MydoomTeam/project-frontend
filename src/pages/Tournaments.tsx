@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FiArrowRight, FiChevronDown, FiChevronUp, FiLayers, FiPlusCircle } from 'react-icons/fi';
 import { getAllTournaments, registerInTournament } from '../services/tournaments';
@@ -7,8 +7,9 @@ import { getPlayerTournamentHistory } from '../services/players';
 import { Tournament, PlayerTournamentHistoryItem, TournamentStatus } from '../types/models';
 import { getBackendErrorMessage } from '../services/errorHandler';
 import { getTournamentStatusBadgeClass, toBusinessTournamentStatus } from '../utils/tournamentStatus';
+import { PlayerAvatar } from '../components/PlayerAvatar';
 
-type StatusFilter = 'Todos' | TournamentStatus;
+type StatusFilter = 'Todos' | 'Pendiente' | 'Listo para iniciar' | 'Finalizado';
 
 const TOURNAMENTS_REFRESH_MS = 8000;
 
@@ -20,10 +21,11 @@ const toDisplayDate = (value?: string | null): string => {
 };
 
 export const Tournaments: React.FC = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [all, setAll] = useState<Tournament[]>([]);
   const [history, setHistory] = useState<PlayerTournamentHistoryItem[]>([]);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('Todos');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(() => searchParams.get('q')?.trim() ?? '');
   const [registeringId, setRegisteringId] = useState<number | null>(null);
   const [registerError, setRegisterError] = useState('');
   const [expandedTournamentId, setExpandedTournamentId] = useState<number | null>(null);
@@ -73,6 +75,25 @@ export const Tournaments: React.FC = () => {
     return () => window.clearInterval(interval);
   }, [storedUserId]);
 
+  useEffect(() => {
+    const nextQuery = searchParams.get('q')?.trim() ?? '';
+    setSearchQuery((prev) => (prev === nextQuery ? prev : nextQuery));
+  }, [searchParams]);
+
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    const normalized = value.trim();
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (normalized) {
+        next.set('q', normalized);
+      } else {
+        next.delete('q');
+      }
+      return next;
+    }, { replace: true });
+  };
+
   const filtered = useMemo(() => {
     let result = all;
     if (statusFilter !== 'Todos') {
@@ -80,7 +101,11 @@ export const Tournaments: React.FC = () => {
     }
     if (searchQuery.trim()) {
       const q = searchQuery.trim().toLowerCase();
-      result = result.filter((t) => t.name.toLowerCase().includes(q));
+      result = result.filter((t) => {
+        const byName = t.name.toLowerCase().includes(q);
+        const byCreator = (t.creator_name ?? '').toLowerCase().includes(q);
+        return byName || byCreator;
+      });
     }
     return result;
   }, [all, statusFilter, searchQuery]);
@@ -89,7 +114,6 @@ export const Tournaments: React.FC = () => {
     'Todos': all.length,
     'Pendiente': all.filter((item) => item.status === 'Pendiente').length,
     'Listo para iniciar': all.filter((item) => item.status === 'Listo para iniciar').length,
-    'En curso': all.filter((item) => item.status === 'En curso').length,
     'Finalizado': all.filter((item) => item.status === 'Finalizado').length,
   }), [all]);
 
@@ -116,12 +140,11 @@ export const Tournaments: React.FC = () => {
     }
   };
 
-  const STATUS_FILTERS: StatusFilter[] = ['Todos', 'Pendiente', 'Listo para iniciar', 'En curso', 'Finalizado'];
+  const STATUS_FILTERS: StatusFilter[] = ['Todos', 'Pendiente', 'Listo para iniciar', 'Finalizado'];
   const STATUS_LABELS: Record<StatusFilter, string> = {
     'Todos': 'Todos',
     'Pendiente': 'Pendiente',
     'Listo para iniciar': 'Activo',
-    'En curso': 'En curso',
     'Finalizado': 'Finalizado',
   };
 
@@ -146,21 +169,11 @@ export const Tournaments: React.FC = () => {
 
   const getCreatorPresentation = (t: Tournament) => {
     const creatorName = (t.creator_name && t.creator_name.trim()) || `Administrador #${t.creator_id}`;
-    const avatarUrl = (t as Tournament & { creator_avatar_url?: string | null }).creator_avatar_url;
-    const initials = creatorName
-      .split(' ')
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase() ?? '')
-      .join('') || 'AD';
+    const avatarUrl = t.creator_avatar_url;
 
     return (
       <span className="tn-creator-cell">
-        {avatarUrl ? (
-          <img className="tn-creator-avatar" src={avatarUrl} alt={creatorName} />
-        ) : (
-          <span className="tn-creator-avatar tn-creator-avatar-fallback" aria-hidden="true">{initials}</span>
-        )}
+        <PlayerAvatar username={creatorName} avatarUrl={avatarUrl} size="xs" className="tn-creator-avatar" />
         <span>{creatorName}</span>
       </span>
     );
@@ -213,22 +226,21 @@ export const Tournaments: React.FC = () => {
             <h2>Centro de torneos</h2>
             <p>Crea torneos desde un flujo guiado y cambia el foco de esta vista con un clic.</p>
           </div>
-          <span className="tn-action-pill">{all.length} registrados</span>
+          <span className="tn-action-pill">{all.length} en plataforma</span>
         </div>
         <div className="tn-action-buttons">
           <Link to="/tournaments/new" className="tn-cta tn-cta-primary">
             <FiPlusCircle aria-hidden="true" />
             Crear torneo guiado
           </Link>
-          <button
-            type="button"
+          <Link
+            to="/tournaments/live"
             className="tn-cta tn-cta-secondary"
-            onClick={() => setStatusFilter('En curso')}
           >
             <FiLayers aria-hidden="true" />
             Ver torneos en curso
             <FiArrowRight aria-hidden="true" />
-          </button>
+          </Link>
         </div>
       </motion.div>
 
@@ -264,8 +276,11 @@ export const Tournaments: React.FC = () => {
             <div>
               <p>
                 {filtered.length} {filtered.length === 1 ? 'torneo encontrado' : 'torneos encontrados'}
-                {history.length > 0 && (
-                  <> · <span style={{ color: 'var(--accent)' }}>{history.length} propios</span></>
+                {myAdminCount > 0 && (
+                  <> · <span style={{ color: 'var(--accent)' }}>{myAdminCount} propios</span></>
+                )}
+                {myPlayerCount > 0 && (
+                  <> · <span style={{ color: '#8ec2ff' }}>{myPlayerCount} inscritos</span></>
                 )}
               </p>
             </div>
@@ -274,7 +289,7 @@ export const Tournaments: React.FC = () => {
               className="tn-search tn-search-inline"
               placeholder="Buscar por nombre..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
               aria-label="Buscar torneos"
             />
           </div>

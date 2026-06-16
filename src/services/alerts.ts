@@ -1,8 +1,8 @@
 import apiClient from './apiClient';
-import { AlertItem } from '../types/models';
+import { AlertPanelResponse } from '../types/models';
 
-export const getAlerts = async (): Promise<{ items: AlertItem[] }> => {
-  const response = await apiClient.get<{ items: AlertItem[] }>('/alerts');
+export const getAlerts = async (): Promise<AlertPanelResponse> => {
+  const response = await apiClient.get<AlertPanelResponse>('/alerts');
   return response.data;
 };
 

@@ -6,6 +6,9 @@ const isRouteActive = (currentPath: string, routePath: string): boolean => {
   if (routePath === '/tournaments') {
     return currentPath === '/tournaments' || currentPath.startsWith('/tournaments/');
   }
+  if (routePath === '/profile') {
+    return currentPath === '/profile' || currentPath.startsWith('/profile/');
+  }
   return currentPath === routePath;
 };
 
