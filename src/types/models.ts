@@ -91,8 +91,11 @@ export interface AlertItem {
 export interface AlertActivityItem {
   id: number;
   action: string;
+  action_label?: string | null;
   created_at: string;
   description?: string | null;
+  tournament_id?: number | null;
+  tournament_name?: string | null;
 }
 
 export interface AlertPanelStats {

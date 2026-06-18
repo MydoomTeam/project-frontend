@@ -296,15 +296,15 @@ export const Dashboard: React.FC = () => {
                 <tbody>
                   {recentHistory.map((item) => (
                     <tr key={item.id}>
-                      <td>{item.name}</td>
-                      <td>{item.elimination_type}</td>
-                      <td>
+                      <td data-label="Nombre">{item.name}</td>
+                      <td data-label="Formato">{item.elimination_type}</td>
+                      <td data-label="Estado">
                         <span className={`badge ${getStatusBadgeClass(item.status)}`}>
                           {toBusinessTournamentStatus(item.status)}
                         </span>
                       </td>
-                      <td>{item.is_creator ? 'Administrador' : 'Jugador'}</td>
-                      <td>
+                      <td data-label="Rol">{item.is_creator ? 'Administrador' : 'Jugador'}</td>
+                      <td data-label="Acción">
                         <Link to={`/tournaments/${item.id}`} className="dashboard-inline-link">Gestionar</Link>
                       </td>
                     </tr>
@@ -340,15 +340,15 @@ export const Dashboard: React.FC = () => {
                 <tbody>
                   {tournaments.map((t) => (
                     <tr key={t.id}>
-                      <td>{t.name}</td>
-                      <td>{t.elimination_type}</td>
-                      <td>{t.rounds}</td>
-                      <td>
+                      <td data-label="Nombre">{t.name}</td>
+                      <td data-label="Formato">{t.elimination_type}</td>
+                      <td data-label="Rondas">{t.rounds}</td>
+                      <td data-label="Estado">
                         <span className={`badge ${getStatusBadgeClass(t.status)}`}>
                           {toBusinessTournamentStatus(t.status)}
                         </span>
                       </td>
-                      <td>
+                      <td data-label="Detalle">
                         <Link to={`/tournaments/${t.id}`} className="dashboard-inline-link">Ver torneo</Link>
                       </td>
                     </tr>

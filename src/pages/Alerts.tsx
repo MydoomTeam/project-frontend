@@ -23,10 +23,11 @@ const toAlertStatusLabel = (status: AlertItem['status']): string => status === '
 const toAlertStatusTone = (status: AlertItem['status']): 'critical' | 'resolved' => status === 'nueva' ? 'critical' : 'resolved';
 
 const toActivityLabel = (entry: AlertActivityItem): string => {
+  if (entry.action_label && entry.action_label.trim()) return entry.action_label;
   if (entry.action === 'CREATE_ALERTA') return 'Nueva alerta registrada';
   if (entry.action === 'ACK_ALERTA') return 'Alerta marcada como resuelta';
   if (entry.action === 'CREATE_ALERTA_FAILED') return 'Fallo en generación automática';
-  return entry.action.split('_').join(' ');
+  return 'Actividad del torneo';
 };
 
 export const Alerts: React.FC = () => {
@@ -200,10 +201,10 @@ export const Alerts: React.FC = () => {
                 <article key={entry.id} className="alerts-history-item">
                   <div className="alerts-history-meta">
                     <span>{formatAlertDate(entry.created_at)}</span>
-                    <span className="alerts-history-badge">{entry.action}</span>
+                    <span className="alerts-history-badge">{toActivityLabel(entry)}</span>
                   </div>
-                  <p>{toActivityLabel(entry)}</p>
-                  {entry.description && <small>{entry.description}</small>}
+                  <p>{entry.description || toActivityLabel(entry)}</p>
+                  {entry.tournament_name && <small>Torneo: {entry.tournament_name}</small>}
                 </article>
               ))
             )}

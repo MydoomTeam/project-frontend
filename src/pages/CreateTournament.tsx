@@ -21,6 +21,7 @@ import {
 } from '../validation/schemas';
 import { EliminationType, Tournament } from '../types/models';
 import { getTournamentStatusBadgeClass, toBusinessTournamentStatus } from '../utils/tournamentStatus';
+import { formatDateForDisplay } from '../utils/dateDisplay';
 
 const ELIMINATION_OPTIONS: { value: EliminationType; label: string; description: string }[] = [
   {
@@ -76,12 +77,7 @@ const participantHint = (type: EliminationType, rounds: number): string => {
   return `${type} con ${rounds} ronda(s) admite entre ${range.min} y ${range.max} participantes.`;
 };
 
-const toDisplayDate = (value?: string | null): string => {
-  if (!value) return 'Sin definir';
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return value;
-  return parsed.toLocaleDateString('es-CO', { year: 'numeric', month: 'short', day: '2-digit' });
-};
+const toDisplayDate = (value?: string | null): string => formatDateForDisplay(value);
 
 const toDisplayValue = (value?: unknown): string => {
   if (value === undefined || value === null || value === '') return 'Sin definir';
@@ -196,6 +192,7 @@ export const CreateTournament: React.FC = () => {
   });
 
   const values = watch();
+  const usesScoreRegistration = register('uses_score');
   const participantValue = getNumVal(values.participant_target, getMinParticipantsForFormat(values.elimination_type));
   const roundRange = getRoundRangeForParticipants(values.elimination_type, participantValue);
   const participantRange = getParticipantRangeForRounds(values.elimination_type, values.rounds || 1);
@@ -388,7 +385,22 @@ export const CreateTournament: React.FC = () => {
                       <label className="ct-label" htmlFor="ct-uses-score">Modo de resultado</label>
                       <label className="ct-switch" htmlFor="ct-uses-score">
                         <span className="ct-switch-track">
-                          <input id="ct-uses-score" type="checkbox" {...register('uses_score')} />
+                          <input
+                            id="ct-uses-score"
+                            type="checkbox"
+                            name={usesScoreRegistration.name}
+                            ref={usesScoreRegistration.ref}
+                            onBlur={usesScoreRegistration.onBlur}
+                            checked={!!values.uses_score}
+                            onChange={(event) => {
+                              usesScoreRegistration.onChange(event);
+                              setValue('uses_score', event.target.checked, {
+                                shouldDirty: true,
+                                shouldTouch: true,
+                                shouldValidate: false,
+                              });
+                            }}
+                          />
                           <span className="ct-switch-slider" aria-hidden="true" />
                         </span>
                         <span className="ct-switch-copy">

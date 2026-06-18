@@ -22,6 +22,7 @@ import { BracketViewer } from '../components/BracketViewer';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { PlayerAvatar } from '../components/PlayerAvatar';
 import { getTournamentStatusBadgeClass, toBusinessTournamentStatus } from '../utils/tournamentStatus';
+import { formatDateForDisplay } from '../utils/dateDisplay';
 
 const IN_PROGRESS_REFRESH_MS = 4000;
 
@@ -30,12 +31,7 @@ const toDisplayValue = (value?: string | number | null): string => {
   return String(value);
 };
 
-const toDisplayDate = (value?: string | null): string => {
-  if (!value) return 'Sin definir';
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return value;
-  return parsed.toLocaleDateString('es-CO', { year: 'numeric', month: 'short', day: '2-digit' });
-};
+const toDisplayDate = (value?: string | null): string => formatDateForDisplay(value);
 
 interface PendingResult {
   matchId: number;
@@ -291,7 +287,8 @@ export const TournamentDetail: React.FC = () => {
   };
 
   const handleUnregister = async () => {
-    if (!isRegistered) return;
+    const normalized = normalizeRegistrationStatus(currentUserRegistrationStatus);
+    if (!isRegistered && normalized !== 'por confirmar' && normalized !== 'confirmado') return;
 
     try {
       await unregisterFromTournament(tournamentId);

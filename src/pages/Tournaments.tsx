@@ -8,17 +8,13 @@ import { Tournament, PlayerTournamentHistoryItem, TournamentStatus } from '../ty
 import { getBackendErrorMessage } from '../services/errorHandler';
 import { getTournamentStatusBadgeClass, toBusinessTournamentStatus } from '../utils/tournamentStatus';
 import { PlayerAvatar } from '../components/PlayerAvatar';
+import { formatDateForDisplay } from '../utils/dateDisplay';
 
 type StatusFilter = 'Todos' | 'Pendiente' | 'Listo para iniciar' | 'Finalizado';
 
 const TOURNAMENTS_REFRESH_MS = 8000;
 
-const toDisplayDate = (value?: string | null): string => {
-  if (!value) return 'Sin definir';
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return value;
-  return parsed.toLocaleDateString('es-CO', { year: 'numeric', month: 'short', day: '2-digit' });
-};
+const toDisplayDate = (value?: string | null): string => formatDateForDisplay(value);
 
 export const Tournaments: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -326,7 +322,7 @@ export const Tournaments: React.FC = () => {
                     return (
                       <React.Fragment key={t.id}>
                         <tr className={isExpanded ? 'tn-row-expanded' : ''}>
-                          <td>
+                          <td data-label="Nombre">
                             <span style={{ display: 'block' }}>{t.name}</span>
                             {registrationCaption && (
                               <span style={{ color: 'var(--text-muted)', fontSize: '0.76rem' }}>
@@ -334,15 +330,15 @@ export const Tournaments: React.FC = () => {
                               </span>
                             )}
                           </td>
-                          <td>{t.elimination_type}</td>
-                          <td>{t.rounds}</td>
-                          <td>
+                          <td data-label="Tipo">{t.elimination_type}</td>
+                          <td data-label="Rondas">{t.rounds}</td>
+                          <td data-label="Estado">
                             <span className={`badge ${getTournamentStatusBadgeClass(t.status)}`}>
                               {t.status === 'En curso' && <span className="badge-live-dot" aria-hidden="true" />}
                               {toBusinessTournamentStatus(t.status)}
                             </span>
                           </td>
-                          <td>
+                          <td data-label="Mi rol">
                             {myItem ? (
                               <span className={`tn-role-chip ${myItem.is_creator ? 'is-admin' : 'is-player'}`}>
                                 {myItem.is_creator ? 'Admin' : 'Jugador'}
@@ -351,7 +347,7 @@ export const Tournaments: React.FC = () => {
                               <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>—</span>
                             )}
                           </td>
-                          <td className="tn-col-actions">
+                          <td className="tn-col-actions" data-label="Acciones">
                             <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', alignItems: 'center' }}>
                               <Link to={`/tournaments/${t.id}`} className="dashboard-inline-link">
                                 {myItem ? 'Gestionar' : 'Ver detalle'}
@@ -378,7 +374,7 @@ export const Tournaments: React.FC = () => {
                         </tr>
                         {isExpanded && (
                           <tr className="tn-detail-row">
-                            <td colSpan={6}>
+                            <td colSpan={6} data-label="">
                               <div className="tn-detail-grid">
                                 {detailRows.map((row) => (
                                   <div key={`${t.id}-${row.label}`} className="tn-detail-item">
