@@ -11,6 +11,8 @@ import { AlertItem, PlayerTournamentHistoryItem, Tournament } from '../types/mod
 import { getBackendErrorMessage } from '../services/errorHandler';
 import { CreateTournamentFormInput, CreateTournamentFormValues, createTournamentSchema } from '../validation/schemas';
 import { getTournamentStatusBadgeClass, toBusinessTournamentStatus } from '../utils/tournamentStatus';
+import { usePeriodicAsync } from '../hooks/usePeriodicAsync';
+import { useStoredUserProfile } from '../hooks/useStoredUserProfile';
 
 const DASHBOARD_REFRESH_MS = 4000;
 const ALERTS_REFRESH_MS = 15000;
@@ -44,24 +46,39 @@ export const Dashboard: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [tournaments, setTournaments] = useState<Tournament[]>([]);
-  const [history, setHistory] = useState<PlayerTournamentHistoryItem[]>([]);
-  const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [createError, setCreateError] = useState('');
   const [createdTournament, setCreatedTournament] = useState<Tournament | null>(null);
   const [isCreateModalOpen, setCreateModalOpen] = useState(false);
 
-  const storedUserId = useMemo(() => {
-    const rawUser = localStorage.getItem('user_profile');
-    if (!rawUser) return null;
+  const storedUser = useStoredUserProfile();
+  const storedUserId = storedUser?.id ?? null;
 
-    try {
-      const parsed = JSON.parse(rawUser) as { id?: number };
-      return typeof parsed.id === 'number' ? parsed.id : null;
-    } catch {
-      return null;
-    }
-  }, []);
+  const [tournaments, , refreshTournaments] = usePeriodicAsync(
+    getAvailableTournaments,
+    DASHBOARD_REFRESH_MS,
+    [],
+    [] as Tournament[],
+  );
+
+  const [alerts, , refreshAlerts] = usePeriodicAsync(
+    async () => {
+      const data = await getAlerts();
+      return data.items ?? [];
+    },
+    ALERTS_REFRESH_MS,
+    [],
+    [] as AlertItem[],
+  );
+
+  const [history, , refreshHistory] = usePeriodicAsync(
+    async () => {
+      if (storedUserId === null) return [];
+      return getPlayerTournamentHistory(storedUserId);
+    },
+    ALERTS_REFRESH_MS,
+    [storedUserId],
+    [] as PlayerTournamentHistoryItem[],
+  );
 
   const {
     register,
@@ -73,15 +90,6 @@ export const Dashboard: React.FC = () => {
     defaultValues: { name: '', elimination_type: 'Eliminación Sencilla', rounds: 3 },
   });
 
-  const loadTournaments = async () => {
-    try {
-      const data = await getAvailableTournaments();
-      setTournaments(data);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
     const shouldOpenCreateModal = searchParams.get('create') === '1';
@@ -90,44 +98,6 @@ export const Dashboard: React.FC = () => {
     }
   }, [location.search]);
 
-  useEffect(() => {
-    loadTournaments();
-    const intervalId = window.setInterval(loadTournaments, DASHBOARD_REFRESH_MS);
-    return () => window.clearInterval(intervalId);
-  }, []);
-
-  useEffect(() => {
-    if (storedUserId === null) return;
-
-    const loadHistory = async () => {
-      try {
-        const data = await getPlayerTournamentHistory(storedUserId);
-        setHistory(data);
-      } catch (err) {
-        console.error(err);
-      }
-    };
-
-    loadHistory();
-    const intervalId = window.setInterval(loadHistory, ALERTS_REFRESH_MS);
-    return () => window.clearInterval(intervalId);
-  }, [storedUserId]);
-
-  useEffect(() => {
-    const loadAlerts = async () => {
-      try {
-        const data = await getAlerts();
-        setAlerts(data.items ?? []);
-      } catch (err) {
-        console.error(err);
-      }
-    };
-
-    loadAlerts();
-    const intervalId = window.setInterval(loadAlerts, ALERTS_REFRESH_MS);
-    return () => window.clearInterval(intervalId);
-  }, []);
-
   const onCreate = async (values: CreateTournamentFormValues) => {
     setCreateError('');
 
@@ -135,7 +105,7 @@ export const Dashboard: React.FC = () => {
       const tournament = await createTournament(values.name, values.elimination_type, values.rounds);
       setCreatedTournament(tournament);
       reset();
-      loadTournaments();
+      refreshTournaments();
     } catch (err: any) {
       setCreateError(getBackendErrorMessage(err, 'No se pudo crear el torneo. Verifique los datos.'));
     }

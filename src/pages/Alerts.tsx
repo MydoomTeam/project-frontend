@@ -3,7 +3,7 @@ import { FiAlertTriangle, FiBell, FiCheckCircle, FiClock, FiRefreshCw } from 're
 import { getAlerts, ackAlert } from '../services/alerts';
 import { AlertActivityItem, AlertItem, AlertPanelStats } from '../types/models';
 import { getBackendErrorMessage } from '../services/errorHandler';
-import { LoadingSpinner } from '../components/LoadingSpinner';
+import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 
 const ALERTS_REFRESH_MS = 15000;
 

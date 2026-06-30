@@ -132,16 +132,16 @@ export const TournamentsLive: React.FC = () => {
                 <tbody>
                   {liveTournaments.map((t) => (
                     <tr key={t.id}>
-                      <td>{t.name}</td>
-                      <td>{t.elimination_type}</td>
-                      <td>{t.rounds}</td>
-                      <td>
+                      <td data-label="Nombre">{t.name}</td>
+                      <td data-label="Tipo">{t.elimination_type}</td>
+                      <td data-label="Rondas">{t.rounds}</td>
+                      <td data-label="Estado">
                         <span className={`badge ${getTournamentStatusBadgeClass(t.status)}`}>
                           <span className="badge-live-dot" aria-hidden="true" />
                           {toBusinessTournamentStatus(t.status)}
                         </span>
                       </td>
-                      <td className="tn-col-actions">
+                      <td className="tn-col-actions" data-label="Acciones">
                         <Link to={`/tournaments/${t.id}`} className="dashboard-inline-link">Ver detalle</Link>
                       </td>
                     </tr>
@@ -176,16 +176,16 @@ export const TournamentsLive: React.FC = () => {
                     const canRegister = t.status === 'Pendiente';
                     return (
                       <tr key={t.id}>
-                        <td>{t.name}</td>
-                        <td>{t.elimination_type}</td>
-                        <td>{t.rounds}</td>
-                        <td>
+                        <td data-label="Nombre">{t.name}</td>
+                        <td data-label="Tipo">{t.elimination_type}</td>
+                        <td data-label="Rondas">{t.rounds}</td>
+                        <td data-label="Estado">
                           <span className={`badge ${getTournamentStatusBadgeClass(t.status)}`}>
                             {t.status === 'En curso' && <span className="badge-live-dot" aria-hidden="true" />}
                             {toBusinessTournamentStatus(t.status)}
                           </span>
                         </td>
-                        <td className="tn-col-actions">
+                        <td className="tn-col-actions" data-label="Acciones">
                           <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', flexWrap: 'wrap' }}>
                             <Link to={`/tournaments/${t.id}`} className="dashboard-inline-link">Ver detalle</Link>
                             {canRegister ? (

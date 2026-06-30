@@ -6,11 +6,11 @@ import {
   HiOutlinePlus,
   HiOutlineTrophy,
 } from 'react-icons/hi2';
-import { ackAlert, getAlerts } from '../services/alerts';
-import { getPlayerById, searchPlayers } from '../services/players';
-import { getAllTournaments } from '../services/tournaments';
-import { AlertItem, PlayerLookupItem, Tournament } from '../types/models';
-import { PlayerAvatar } from './PlayerAvatar';
+import { ackAlert, getAlerts } from '../../services/alerts';
+import { getPlayerById, searchPlayers } from '../../services/players';
+import { getAllTournaments } from '../../services/tournaments';
+import { AlertItem, PlayerLookupItem, Tournament } from '../../types/models';
+import { PlayerAvatar } from '../ui/PlayerAvatar';
 
 const ALERTS_REFRESH_MS = 15000;
 const SEARCH_TOURNAMENTS_REFRESH_MS = 45000;
@@ -429,7 +429,7 @@ export const Navbar: React.FC = () => {
       <div className="app-topbar-zone app-topbar-zone--actions">
 
         {/* Primary CTA */}
-        <Link to="/tournaments/new" className="app-topbar-btn app-topbar-btn--primary">
+        <Link to="/tournaments/new" className="app-topbar-btn app-topbar-btn--primary" aria-label="Crear nuevo torneo">
           <span className="app-topbar-icon-box">
             <HiOutlinePlus aria-hidden="true" />
           </span>

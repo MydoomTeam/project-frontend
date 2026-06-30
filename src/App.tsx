@@ -9,9 +9,9 @@ import { TournamentDetail } from './pages/TournamentDetail';
 import { CreateTournament } from './pages/CreateTournament';
 import { Alerts } from './pages/Alerts';
 import { Profile } from './pages/Profile';
-import { Navbar } from './components/Navbar';
-import { Sidebar } from './components/Sidebar';
-import { SessionTimeoutManager } from './components/SessionTimeoutManager';
+import { Navbar } from './components/layout/Navbar';
+import { Sidebar } from './components/layout/Sidebar';
+import { SessionTimeoutManager } from './components/layout/SessionTimeoutManager';
 import './assets/styles.css';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {

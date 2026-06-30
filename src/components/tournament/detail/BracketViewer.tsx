@@ -2,8 +2,8 @@ import React, { useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { Bracket, Model } from 'react-tournament-bracket';
-import { EliminationType, Match } from '../types/models';
-import { PlayerAvatar } from './PlayerAvatar';
+import { EliminationType, Match } from '../../../types/models';
+import { PlayerAvatar } from '../../ui/PlayerAvatar';
 
 type MatchWithScores = Match & {
   score_player1?: number | null;
